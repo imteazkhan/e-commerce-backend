@@ -20,6 +20,9 @@ class Product extends Model
         'is_featured',
     ];
 
+    // At or below this many units a product shows up as "low stock".
+    public const LOW_STOCK = 5;
+
     protected function casts(): array
     {
         return [
@@ -29,6 +32,12 @@ class Product extends Model
             'images' => 'array',
             'is_featured' => 'boolean',
         ];
+    }
+
+    // Products the store shows: uncategorized, or in a category that is not paused.
+    public function scopeVisible($query)
+    {
+        return $query->where(fn ($q) => $q->whereNull('category_id')->orWhereHas('category', fn ($c) => $c->active()));
     }
 
     public function category(): BelongsTo

@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // Must match the slugs in the frontend's src/utils/catalog.js.
+        // Starter menu; admins can add/remove categories via /api/categories.
         $categories = [
             'blazer' => 'Blazer',
             'shirt' => 'Shirt',

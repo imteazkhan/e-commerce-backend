@@ -14,9 +14,21 @@ class Order extends Model
         'phone',
         'address',
         'payment_method',
+        'payment_status',
         'total',
         'status',
+        'admin_note',
     ];
+
+    public const STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+
+    public const PAYMENT_STATUSES = ['unpaid', 'paid', 'refunded'];
+
+    // Orders that count towards revenue.
+    public function scopeBillable($query)
+    {
+        return $query->where('status', '!=', 'cancelled');
+    }
 
     protected function casts(): array
     {

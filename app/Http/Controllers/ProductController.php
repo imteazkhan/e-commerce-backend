@@ -10,11 +10,16 @@ class ProductController extends Controller
 {
     /**
      * Query params used by the frontend: category (slug), search, sort
-     * (new|price_asc|price_desc), featured=1, discount=1.
+     * (new|price_asc|price_desc), featured=1, discount=1, stock (in|low|out),
+     * all=1 (staff only: include products in paused categories).
      */
     public function index(Request $request)
     {
         $query = Product::with('category');
+
+        if (! ($request->boolean('all') && $this->isStaff($request))) {
+            $query->visible();
+        }
 
         if ($slug = $request->query('category')) {
             $query->whereHas('category', fn ($q) => $q->where('slug', $slug));
@@ -23,9 +28,17 @@ class ProductController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('sku', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%");
             });
         }
+
+        match ($request->query('stock')) {
+            'in' => $query->where('stock', '>', Product::LOW_STOCK),
+            'low' => $query->whereBetween('stock', [1, Product::LOW_STOCK]),
+            'out' => $query->where('stock', 0),
+            default => null,
+        };
 
         if ($request->boolean('featured')) {
             $query->where('is_featured', true);
@@ -45,8 +58,12 @@ class ProductController extends Controller
         return response()->json($query->get());
     }
 
-    public function show(Product $product)
+    public function show(Request $request, Product $product)
     {
+        if ($product->category && ! $product->category->is_active && ! $this->isStaff($request)) {
+            abort(404);
+        }
+
         return response()->json($product->load('category'));
     }
 

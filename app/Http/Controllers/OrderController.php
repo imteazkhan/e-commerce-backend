@@ -42,6 +42,13 @@ class OrderController extends Controller
             foreach ($data['items'] as $item) {
                 $product = $products[$item['product_id']];
 
+                // Products in a paused category may still sit in someone's cart.
+                if ($product->category_id && ! $product->category()->value('is_active')) {
+                    throw ValidationException::withMessages([
+                        'items' => ["{$product->name} is currently unavailable."],
+                    ]);
+                }
+
                 if ($product->stock < $item['qty']) {
                     throw ValidationException::withMessages([
                         'items' => ["Not enough stock for {$product->name}."],
