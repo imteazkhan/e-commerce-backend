@@ -11,12 +11,12 @@ use Illuminate\Validation\Rule;
 class CategoryController extends Controller
 {
     /**
-     * Menu categories, in the order they were created. Paused ones are left out
+     * Menu categories, in the order the admin arranged them. Paused ones are left out
      * unless a staff member asks for all=1.
      */
     public function index(Request $request)
     {
-        $query = Category::withCount('products')->orderBy('id');
+        $query = Category::withCount('products')->ordered();
 
         if (! ($request->boolean('all') && $this->isStaff($request))) {
             $query->active();
@@ -43,9 +43,31 @@ class CategoryController extends Controller
             return response()->json(['message' => "A category with slug \"{$data['slug']}\" already exists."], 422);
         }
 
+        // New categories go to the end of the menu.
+        $data['position'] = (int) Category::max('position') + 1;
+
         $category = Category::create($data);
 
         return response()->json($category->loadCount('products'), 201);
+    }
+
+    /**
+     * Save the menu order. `ids` lists category ids top to bottom.
+     */
+    public function reorder(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'distinct', Rule::exists('categories', 'id')],
+        ]);
+
+        DB::transaction(function () use ($data) {
+            foreach ($data['ids'] as $index => $id) {
+                Category::whereKey($id)->update(['position' => $index + 1]);
+            }
+        });
+
+        return response()->json(Category::withCount('products')->ordered()->get());
     }
 
     /**

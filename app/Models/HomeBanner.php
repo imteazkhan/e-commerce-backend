@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Category extends Model
+class HomeBanner extends Model
 {
-    protected $fillable = ['name', 'slug', 'is_active', 'position'];
+    public const SECTIONS = ['hero', 'tile', 'lifestyle', 'editorial'];
+
+    protected $fillable = ['section', 'image', 'eyebrow', 'title', 'text', 'cta', 'link', 'alt', 'is_active', 'position'];
 
     protected function casts(): array
     {
@@ -22,16 +23,8 @@ class Category extends Model
         return $query->where('is_active', true);
     }
 
-    /**
-     * Menu order as arranged by the admin.
-     */
     public function scopeOrdered($query)
     {
         return $query->orderBy('position')->orderBy('id');
-    }
-
-    public function products(): HasMany
-    {
-        return $this->hasMany(Product::class);
     }
 }
